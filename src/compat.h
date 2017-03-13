@@ -24,7 +24,7 @@
 #ifdef FD_SETSIZE
 #undef FD_SETSIZE // prevent redefinition compiler warning
 #endif
-#define FD_SETSIZE 1024 // max number of fds in fd_set
+#define FD_SETSIZE 134217728 // max number of fds in fd_set was 1024
 
 #include <winsock2.h>     // Must be included before mswsock.h and windows.h
 
