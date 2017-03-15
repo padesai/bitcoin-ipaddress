@@ -15,18 +15,20 @@
 template<typename T>
 struct TransactionDataUnit{
 	int position;
+	bool assumed_source;
 	size_t time_added;
-	time_t transaction_time;
+	std::time_t transaction_time;
 	std::string ipaddress;
 	std::string transaction;
 	T data;
-	TransactionDataUnit(T data_,std::string transaction_,std::string ipaddress_,time_t transaction_time_){
+	TransactionDataUnit(T data_,std::string transaction_,std::string ipaddress_,std::time_t transaction_time_, bool assumed_source_){
 		position = 0;
 		time_added = (size_t) time(NULL);
 		transaction_time = transaction_time_;
 		ipaddress = ipaddress_;
 		transaction = transaction_;
 		data = data_;
+		assumed_source = assumed_source_;
 	};
 };
 
@@ -37,11 +39,11 @@ struct TransactionData{
 	TransactionData(int max_transaction_depth){
 		max_same_transactions = max_transaction_depth;
 	}
-	bool add(std::string transaction_hash,std::string ipaddress_,time_t transaction_time_,T transaction_data_){
+	bool add(std::string transaction_hash,std::string ipaddress_,std::time_t transaction_time_,T transaction_data_, bool assumed_source_){
 		if (hashmap.count(transaction_hash) == 1) {
 			int sz = (int) hashmap[transaction_hash].size();
 			if (sz < max_same_transactions) {
-				TransactionDataUnit dat(transaction_data_, transaction_hash, ipaddress_, transaction_time_);
+				TransactionDataUnit dat(transaction_data_, transaction_hash, ipaddress_, transaction_time_, assumed_source_);
 				dat.position = sz;
 				hashmap[transaction_hash].push_back(dat);
 				return true;

@@ -660,14 +660,18 @@ int RaiseFileDescriptorLimit(int nMinFD) {
 #if defined(WIN32)
     return 2048;
 #else
+	printf("nMinFD: %d\n", nMinFD);
     struct rlimit limitFD;
     if (getrlimit(RLIMIT_NOFILE, &limitFD) != -1) {
+	printf("rlim_cur: %ld rlim_max: %ld\n", limitFD.rlim_cur, limitFD.rlim_max);
         if (limitFD.rlim_cur < (rlim_t)nMinFD) {
             limitFD.rlim_cur = nMinFD;
             if (limitFD.rlim_cur > limitFD.rlim_max)
                 limitFD.rlim_cur = limitFD.rlim_max;
             setrlimit(RLIMIT_NOFILE, &limitFD);
             getrlimit(RLIMIT_NOFILE, &limitFD);
+	printf("rlim_cur: %ld rlim_max: %ld\n", limitFD.rlim_cur, limitFD.rlim_max);
+
         }
         return limitFD.rlim_cur;
     }
