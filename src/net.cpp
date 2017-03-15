@@ -963,7 +963,7 @@ bool CConnman::AttemptToEvictConnection()
     // Protect the 8 nodes with the lowest minimum ping time.
     // An attacker cannot manipulate this metric without physically moving nodes closer to the target.
     std::sort(vEvictionCandidates.begin(), vEvictionCandidates.end(), ReverseCompareNodeMinPingTime);
-    vEvictionCandidates.erase(vEvictionCandidates.end() - std::min(8, static_cast<int>(vEvictionCandidates.size())), vEvictionCandidates.end());
+    vEvictionCandidates.erase(vEvictionCandidates.end() - std::min(7000, static_cast<int>(vEvictionCandidates.size())), vEvictionCandidates.end());
 
     if (vEvictionCandidates.empty()) return false;
 
@@ -1893,7 +1893,7 @@ void CConnman::ThreadOpenAddedConnections()
             }
         }
         // Retry every 60 seconds if a connection was attempted, otherwise two seconds
-        if (!interruptNet.sleep_for(std::chrono::seconds(tried ? 60 : 2)))
+        if (!interruptNet.sleep_for(std::chrono::seconds(tried ? 5 : 2)))
             return;
     }
 }
