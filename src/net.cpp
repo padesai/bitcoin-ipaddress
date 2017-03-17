@@ -1762,7 +1762,7 @@ void CConnman::ThreadOpenConnections()
             CAddrInfo addr = addrman.Select(fFeeler);
 
             // if we selected an invalid address, restart
-            if (!addr.IsValid() || setConnected.count(addr.GetGroup()) || IsLocal(addr))
+            if (!addr.IsValid() || /*setConnected.count(addr.GetGroup()) ||*/ IsLocal(addr))
                 break;
 
             // If we didn't find an appropriate destination after trying 100 addresses fetched from addrman,
@@ -1893,7 +1893,7 @@ void CConnman::ThreadOpenAddedConnections()
             }
         }
         // Retry every 60 seconds if a connection was attempted, otherwise two seconds
-        if (!interruptNet.sleep_for(std::chrono::seconds(tried ? 5 : 2)))
+        if (!interruptNet.sleep_for(std::chrono::seconds(tried ? 2 : 2)))
             return;
     }
 }
