@@ -38,6 +38,8 @@
 
 #include <math.h>
 
+#include <fstream>
+
 // Dump addresses to peers.dat and banlist.dat every 15 minutes (900s)
 #define DUMP_ADDRESSES_INTERVAL 900
 
@@ -1667,18 +1669,24 @@ void CConnman::ThreadOpenConnections()
             ProcessOneShot();
             BOOST_FOREACH(const std::string& strAddr, mapMultiArgs.at("-connect"))
             {
+		LogPrint("net", "ThreadOpenConnections top of FOREACH with IP: %s", strAddr.c_str());
                 CAddress addr(CService(), NODE_NONE);
                 OpenNetworkConnection(addr, false, NULL, strAddr.c_str());
                 for (int i = 0; i < 10 && i < nLoop; i++)
                 {
+	            LogPrint("net", "ThreadOpenConnections inner most FOR i: %d", i);
                     if (!interruptNet.sleep_for(std::chrono::milliseconds(500)))
                         return;
                 }
             }
+	    LogPrint("net", "ThreadOpenConnections about to sleep bottom of containing FOR nloop: %d", nLoop);
+
             if (!interruptNet.sleep_for(std::chrono::milliseconds(500)))
                 return;
         }
     }
+
+    LogPrint("net", "ThreadOpenConnections survived explicit connect");
 
     // Initiate network connections
     int64_t nStart = GetTime();
@@ -1863,14 +1871,43 @@ std::vector<AddedNodeInfo> CConnman::GetAddedNodeInfo()
     return ret;
 }
 
+std::vector<std::string> CConnman::ReadNodesFromFile()
+{
+    char line[64];
+    std::vector<std::string> nodes;
+    std::ifstream nodesfile;
+    errno=0;
+    boost::filesystem::path pathConfig = GetDataDir() / "knownnodes.txt";
+    nodesfile.open(pathConfig.string().c_str(), std::ifstream::in);
+
+    if(!nodesfile)
+    {
+        LogPrint("net", "CS6262: can't open knownnodes.txt for input %d\n",errno);
+    }
+    else
+    {
+        do
+        {
+            nodesfile.getline(line,64);
+            nodes.push_back(std::string(line));
+        } while(nodesfile.good());
+        nodesfile.close();
+    }
+
+    return nodes;
+}
+
 void CConnman::ThreadOpenAddedConnections()
 {
     {
         LOCK(cs_vAddedNodes);
         if (mapMultiArgs.count("-addnode"))
             vAddedNodes = mapMultiArgs.at("-addnode");
+        else if(mapMultiArgs.count("-addfilenodes"))
+            vAddedNodes = ReadNodesFromFile();
     }
 
+    LogPrint("net", "CS6262: vAddedNodes is size: %d\n", vAddedNodes.size());
     while (true)
     {
         CSemaphoreGrant grant(*semAddnode);

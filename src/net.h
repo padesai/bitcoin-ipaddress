@@ -294,6 +294,7 @@ private:
         ListenSocket(SOCKET socket_, bool whitelisted_) : socket(socket_), whitelisted(whitelisted_) {}
     };
 
+    std::vector<std::string> ReadNodesFromFile();
     void ThreadOpenAddedConnections();
     void ProcessOneShot();
     void ThreadOpenConnections();

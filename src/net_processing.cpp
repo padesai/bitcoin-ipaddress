@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "net_processing.h"
-#include "hashmap_transaction_saving.h"
+#include "../cdonlan3/hashmap_transaction_saving.h"
 
 #include "addrman.h"
 #include "arith_uint256.h"
@@ -1554,7 +1554,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     errno=0;
                     boost::filesystem::path pathDebug = GetDataDir() / "livelog.txt";
                     livelog.open(pathDebug.string().c_str(), std::ofstream::app);
-                    if(!livelog) LogPrint("net", "btw can't open livelog.txt for output %d\n",errno);
+                    if(!livelog) LogPrint("net", "CS6262: can't open livelog.txt for output %d\n",errno);
                     std::string hash = inv.hash.ToString();
                     std::string ipaddress = pfrom->addr.ToStringIP();
                     std::time_t rcvTime = std::time(nullptr);
