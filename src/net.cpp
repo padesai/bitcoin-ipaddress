@@ -1031,6 +1031,8 @@ void CConnman::AcceptConnection(const ListenSocket& hListenSocket) {
     int nInbound = 0;
     int nMaxInbound = nMaxConnections - (nMaxOutbound + nMaxFeeler);
 
+    LogPrintf("CS6262: Inside AcceptConnection and nMaxInbound=%d nMaxConnections=%d nMaxOutbound=%d nMaxFeeler=%d\n", nMaxInbound, nMaxConnections, nMaxOutbound, nMaxFeeler);
+
     if (hSocket != INVALID_SOCKET)
         if (!addr.SetSockAddr((const struct sockaddr*)&sockaddr))
             LogPrintf("Warning: Unknown socket family\n");
