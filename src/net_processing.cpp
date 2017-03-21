@@ -1558,7 +1558,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     std::string hash = inv.hash.ToString();
                     std::string ipaddress = pfrom->addr.ToStringIP();
                     std::time_t rcvTime = std::time(nullptr);
-                    livelog << "Got: " << inv.type << "" << hash << "," << ipaddress << "," << rcvTime << "\r";
+                    livelog << "Got: " << inv.type << "," << hash << "," << ipaddress << "," << rcvTime << "\r";
                     livelog.close();
             if (inv.type == MSG_TX) {
                 inv.type |= nFetchFlags;
