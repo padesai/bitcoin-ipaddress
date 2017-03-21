@@ -1558,83 +1558,83 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     std::string hash = inv.hash.ToString();
                     std::string ipaddress = pfrom->addr.ToStringIP();
                     std::time_t rcvTime = std::time(nullptr);
-                    livelog << "Got: " << inv.type << "" << hash << "," << ipaddress << "," << rcvTime << "\r";
+                    livelog << "Got: " << inv.type << "," << hash << "," << ipaddress << "," << rcvTime << "\n";
                     livelog.close();
             if (inv.type == MSG_TX) {
                 inv.type |= nFetchFlags;
+                // ***** Start CS6262 changes
+                std::vector<TransactionDataUnit<std::string>> history;
+                std::string hash = inv.hash.ToString();
+                std::string ipaddress = pfrom->addr.ToStringIP();
+                std::string transactiondata = "placeholder";
+                std::time_t rcvTime = std::time(nullptr);
+
+
+                // temp test
+                //std::ofstream livelog;
+                //livelog.open("~/livelog.txt", std::ios::out | std::ios::app);
+                //livelog << "MSG_BLOCK" << hash << "," << ipaddress << "," << rcvTime << "\r";
+                //livelog.close();
+
+                if(transData.query(hash, &history)) {
+                    if(history.size() < 8) {
+                        // If we've gotten this transaction 8 times the odds of the originator
+                        // sending to us directly is just too low. No need to save more data or
+                        // process further. First things first, do we think we've already found
+                        // the source IP? If yes, just stop
+                        if(!history.back().assumed_source) {
+                            if(pfrom->fInbound) {
+                                // Hopefully this is the source IP address, just late to sending
+                                // to us. The longer the list of IP sources ahead of us, and the 
+                                // more time since the first the less likely it is the true 
+                                // source. Log it with lower confidence
+                                int confidence = 100;
+                                confidence -= history.size() * 10;
+                                std::time_t timesince = rcvTime - history.front().time_added;
+                                confidence -= ((int)timesince) * 5;
+                                if(confidence < 1) confidence = 1;
+
+                                std::ofstream corLog;
+                                boost::filesystem::path pathResults = GetDataDir() / "correlation_log.txt";
+                                corLog.open(pathResults.string().c_str(), std::ofstream::app);
+                                corLog << hash << "," << ipaddress << "," << confidence << "\n";
+                                corLog.close();
+
+                                // Add to the transaction list
+                                transData.add(hash, ipaddress, rcvTime, transactiondata, true);
+                            }
+                        }
+                        else {
+                            // We've previously saved this transaction. Add the additional IP address
+                            transData.add(hash, ipaddress, rcvTime, transactiondata, false);
+                        }
+                    }
+                }
+                else {
+                    // Never seen this transaction before. Did it come from an inbound (client)
+                    // connection? If so, we have some confidence of knowing that's the source
+                    // assuming that we've got all of our outbound connections to all possible
+                    // servers
+
+                    if(pfrom->fInbound) {
+                        // Log the IP-transaction pair
+                        int confidence = 95;
+                        std::ofstream corLog;
+                        boost::filesystem::path pathResults = GetDataDir() / "correlation_log.txt";
+                        corLog.open(pathResults.string().c_str(), std::ofstream::app);
+                        corLog << hash << "," << ipaddress << "," << confidence << "\n";
+                        corLog.close();                            
+                    }
+
+                    // Save the transaction
+                    transData.add(hash, ipaddress, rcvTime, transactiondata, pfrom->fInbound);
+                }
+                // ***** End CS6262 changes
             }
 
             if (inv.type == MSG_BLOCK) {
                 UpdateBlockAvailability(pfrom->GetId(), inv.hash);
                 if (!fAlreadyHave && !fImporting && !fReindex && !mapBlocksInFlight.count(inv.hash)) {
-                    // ***** Start CS6262 changes
-                    std::vector<TransactionDataUnit<std::string>> history;
-                    std::string hash = inv.hash.ToString();
-                    std::string ipaddress = pfrom->addr.ToStringIP();
-                    std::string transactiondata = "placeholder";
-                    std::time_t rcvTime = std::time(nullptr);
-
-
-                    // temp test
-                    //std::ofstream livelog;
-                    //livelog.open("~/livelog.txt", std::ios::out | std::ios::app);
-                    //livelog << "MSG_BLOCK" << hash << "," << ipaddress << "," << rcvTime << "\r";
-                    //livelog.close();
-
-                    if(transData.query(hash, &history)) {
-                        if(history.size() < 8) {
-                            // If we've gotten this transaction 8 times the odds of the originator
-                            // sending to us directly is just too low. No need to save more data or
-                            // process further. First things first, do we think we've already found
-                            // the source IP? If yes, just stop
-                            if(!history.back().assumed_source) {
-                                if(pfrom->fInbound) {
-                                    // Hopefully this is the source IP address, just late to sending
-                                    // to us. The longer the list of IP sources ahead of us, and the 
-                                    // more time since the first the less likely it is the true 
-                                    // source. Log it with lower confidence
-                                    int confidence = 100;
-                                    confidence -= history.size() * 10;
-                                    std::time_t timesince = rcvTime - history.front().time_added;
-                                    confidence -= ((int)timesince) * 5;
-                                    if(confidence < 1) confidence = 1;
-
-                                    std::ofstream corLog;
-                                    boost::filesystem::path pathResults = GetDataDir() / "correlation_log.txt";
-                                    corLog.open(pathResults.string().c_str(), std::ofstream::app);
-                                    corLog << hash << "," << ipaddress << "," << confidence << "\n";
-                                    corLog.close();
-
-                                    // Add to the transaction list
-                                    transData.add(hash, ipaddress, rcvTime, transactiondata, true);
-                                }
-                            }
-                            else {
-                                // We've previously saved this transaction. Add the additional IP address
-                                transData.add(hash, ipaddress, rcvTime, transactiondata, false);
-                            }
-                        }
-                    }
-                    else {
-                        // Never seen this transaction before. Did it come from an inbound (client)
-                        // connection? If so, we have some confidence of knowing that's the source
-                        // assuming that we've got all of our outbound connections to all possible
-                        // servers
-
-                        if(pfrom->fInbound) {
-                            // Log the IP-transaction pair
-                            int confidence = 95;
-                            std::ofstream corLog;
-                            boost::filesystem::path pathResults = GetDataDir() / "correlation_log.txt";
-                            corLog.open(pathResults.string().c_str(), std::ofstream::app);
-                            corLog << hash << "," << ipaddress << "," << confidence << "\n";
-                            corLog.close();                            
-                        }
-
-                        // Save the transaction
-                        transData.add(hash, ipaddress, rcvTime, transactiondata, pfrom->fInbound);
-                    }
-                    // ***** End CS6262 changes
                     // We used to request the full block here, but since headers-announcements are now the
                     // primary method of announcement on the network, and since, in the case that a node
                     // fell back to inv we probably have a reorg which we should get the headers for first,
