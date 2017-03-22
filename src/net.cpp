@@ -1194,7 +1194,7 @@ void CConnman::ThreadSocketHandler()
         FD_ZERO(&fdsetError);*/
 		int timeout_usec = 50000;
         SOCKET hSocketMax = 0;
-		pollfd *fdAll = malloc(sizeof(pollfd) * (vhListenSocket.size() + vNodes.size()));
+		pollfd *fdAll = (pollfd*)malloc(sizeof(pollfd) * (vhListenSocket.size() + vNodes.size()));
 		std::map<SOCKET, int> fdMap;
         bool have_fds = false;
 		int fdCount = 0;
@@ -1202,7 +1202,7 @@ void CConnman::ThreadSocketHandler()
         BOOST_FOREACH(const ListenSocket& hListenSocket, vhListenSocket) {
             //FD_SET(hListenSocket.socket, &fdsetRecv);
 			fdAll[fdCount].fd = hListenSocket.socket;
-			fdAll[fdCount].event = POLLIN;
+			fdAll[fdCount].events = POLLIN;
 			fdMap[hListenSocket.socket] = fdCount;
 			fdCount++;
             hSocketMax = std::max(hSocketMax, hListenSocket.socket);
@@ -1325,9 +1325,9 @@ void CConnman::ThreadSocketHandler()
 				}
 				else
 				{
-					recvSet = fdAll[fdMap[pnode->hSocket]].revent & POLLIN;
-					sendSet = fdAll[fdMap[pnode->hSocket]].revent & POLLOUT;
-					recvSet = fdAll[fdMap[pnode->hSocket]].revent & POLLERR;
+					recvSet = fdAll[fdMap[pnode->hSocket]].revents & POLLIN;
+					sendSet = fdAll[fdMap[pnode->hSocket]].revents & POLLOUT;
+					recvSet = fdAll[fdMap[pnode->hSocket]].revents & POLLERR;
 				}
             }
             if (recvSet || errorSet)
