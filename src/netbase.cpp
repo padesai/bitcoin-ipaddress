@@ -15,6 +15,7 @@
 #include "random.h"
 #include "util.h"
 #include "utilstrencodings.h"
+#include "poll.h"
 
 #include <atomic>
 
@@ -229,11 +230,21 @@ bool static InterruptibleRecv(char* data, size_t len, int timeout, SOCKET& hSock
                 if (!IsSelectableSocket(hSocket)) {
                     return false;
                 }
+				/* CS6262 changes follow - FD_SET can only handle 1024 sockets. Replace with poll
                 struct timeval tval = MillisToTimeval(std::min(endTime - curTime, maxWait));
                 fd_set fdset;
                 FD_ZERO(&fdset);
                 FD_SET(hSocket, &fdset);
-                int nRet = select(hSocket + 1, &fdset, NULL, NULL, &tval);
+                int nRet = select(hSocket + 1, &fdset, NULL, NULL, &tval);*/
+
+				pollfd pfd_read;
+				
+				int timeout = std::min(endTime - curTime, maxWait);
+				pfd_read.fd = hSocket;
+				pfd_read.events = POLLIN;
+				int nRet = poll(&pfd_read, 1, timeout);
+
+				// End CS6262 modification
                 if (nRet == SOCKET_ERROR) {
                     return false;
                 }
@@ -435,11 +446,19 @@ bool static ConnectSocketDirectly(const CService &addrConnect, SOCKET& hSocketRe
         // WSAEINVAL is here because some legacy version of winsock uses it
         if (nErr == WSAEINPROGRESS || nErr == WSAEWOULDBLOCK || nErr == WSAEINVAL)
         {
+			// Begin CS6262 changes - FD_SET/select only allows 1024 ports.
+			// Replace with "poll" API
+			/*
             struct timeval timeout = MillisToTimeval(nTimeout);
             fd_set fdset;
             FD_ZERO(&fdset);
             FD_SET(hSocket, &fdset);
-            int nRet = select(hSocket + 1, NULL, &fdset, NULL, &timeout);
+            int nRet = select(hSocket + 1, NULL, &fdset, NULL, &timeout); */
+			pollfd pfd_write;
+			pfd_write.fd = hSocket;
+			pfd_write.events = POLLOUT;
+			int nRet = poll(&pfd_write, 1, nTimeout);
+
             if (nRet == 0)
             {
                 LogPrint("net", "connection to %s timeout\n", addrConnect.ToString());
