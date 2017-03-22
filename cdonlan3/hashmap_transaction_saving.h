@@ -73,12 +73,12 @@ struct TransactionData{
 		time_t now;
 		std::vector<std::string> victims;
 		time(&now);
-		for (std::map<std::string, std::vector<TransactionDataUnit<T>>>::iterator it = hashmap.begin(); it != hashmap.end(); ++it) {
-			if (difftime(now, it->second.transaction_time) > 5 * 60) {
+		for (typename std::map<std::string, std::vector<TransactionDataUnit<T>>>::iterator it = hashmap.begin(); it != hashmap.end(); ++it) {
+			if (difftime(now, it->second[0].transaction_time) > 5 * 60) {
 				victims.push_back(it->first);
 			}
 		}
-		for (std::vector<std::string>::iterator vit = victims.begin(); vit != victims.end(); ++it) {
+		for (std::vector<std::string>::iterator vit = victims.begin(); vit != victims.end(); ++vit) {
 			hashmap.erase(*vit);
 		}
 	}
