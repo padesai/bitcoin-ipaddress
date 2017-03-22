@@ -1540,6 +1540,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         std::vector<CInv> vToFetch;
 
+		transData.prune();
+
         for (unsigned int nInv = 0; nInv < vInv.size(); nInv++)
         {
             CInv &inv = vInv[nInv];
