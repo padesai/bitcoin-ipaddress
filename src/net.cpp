@@ -1327,7 +1327,8 @@ void CConnman::ThreadSocketHandler()
 				{
 					recvSet = fdAll[fdMap[pnode->hSocket]].revents & POLLIN;
 					sendSet = fdAll[fdMap[pnode->hSocket]].revents & POLLOUT;
-					recvSet = fdAll[fdMap[pnode->hSocket]].revents & POLLERR;
+					errorSet = fdAll[fdMap[pnode->hSocket]].revents & POLLERR;
+                    //LogPrint("net", "socket: %d recvSet: %d sendSet: %d errorSet: %d\n", pnode->hSocket, recvSet, sendSet, errorSet);
 				}
             }
             if (recvSet || errorSet)
@@ -1433,6 +1434,7 @@ void CConnman::ThreadSocketHandler()
                 }
             }
         }
+        free(fdAll);
         {
             LOCK(cs_vNodes);
             BOOST_FOREACH(CNode* pnode, vNodesCopy)
