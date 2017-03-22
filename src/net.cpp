@@ -39,6 +39,7 @@
 #include <math.h>
 
 #include <fstream>
+#include <poll.h>
 
 // Dump addresses to peers.dat and banlist.dat every 15 minutes (900s)
 #define DUMP_ADDRESSES_INTERVAL 900
@@ -1177,6 +1178,10 @@ void CConnman::ThreadSocketHandler()
         //
         // Find which sockets have data to receive
         //
+
+		// Begin CS6262 modification - FD_SET/select API cannot handle more than 1024
+		// connections. Replace with "poll" API
+		/*
         struct timeval timeout;
         timeout.tv_sec  = 0;
         timeout.tv_usec = 50000; // frequency to poll pnode->vSend
@@ -1186,12 +1191,20 @@ void CConnman::ThreadSocketHandler()
         fd_set fdsetError;
         FD_ZERO(&fdsetRecv);
         FD_ZERO(&fdsetSend);
-        FD_ZERO(&fdsetError);
+        FD_ZERO(&fdsetError);*/
+		int timeout_usec = 50000;
         SOCKET hSocketMax = 0;
+		pollfd *fdAll = (pollfd*)malloc(sizeof(pollfd) * (vhListenSocket.size() + vNodes.size()));
+		std::map<SOCKET, int> fdMap;
         bool have_fds = false;
+		int fdCount = 0;
 
         BOOST_FOREACH(const ListenSocket& hListenSocket, vhListenSocket) {
-            FD_SET(hListenSocket.socket, &fdsetRecv);
+            //FD_SET(hListenSocket.socket, &fdsetRecv);
+			fdAll[fdCount].fd = hListenSocket.socket;
+			fdAll[fdCount].events = POLLIN;
+			fdMap[hListenSocket.socket] = fdCount;
+			fdCount++;
             hSocketMax = std::max(hSocketMax, hListenSocket.socket);
             have_fds = true;
         }
@@ -1222,22 +1235,30 @@ void CConnman::ThreadSocketHandler()
                 if (pnode->hSocket == INVALID_SOCKET)
                     continue;
 
-                FD_SET(pnode->hSocket, &fdsetError);
+                //FD_SET(pnode->hSocket, &fdsetError);
+				fdAll[fdCount].fd = pnode->hSocket;
+				fdMap[pnode->hSocket] = fdCount;
+				//fdAll[i].revents = POLLERR;
                 hSocketMax = std::max(hSocketMax, pnode->hSocket);
                 have_fds = true;
 
                 if (select_send) {
-                    FD_SET(pnode->hSocket, &fdsetSend);
+                    //FD_SET(pnode->hSocket, &fdsetSend);
+					fdAll[fdCount].events = POLLOUT;
+					fdCount++;
                     continue;
                 }
                 if (select_recv) {
-                    FD_SET(pnode->hSocket, &fdsetRecv);
+                    //FD_SET(pnode->hSocket, &fdsetRecv);
+					fdAll[fdCount].events = POLLIN;
+					fdCount++;
                 }
             }
         }
 
-        int nSelect = select(have_fds ? hSocketMax + 1 : 0,
-                             &fdsetRecv, &fdsetSend, &fdsetError, &timeout);
+        /*int nSelect = select(have_fds ? hSocketMax + 1 : 0,
+                             &fdsetRecv, &fdsetSend, &fdsetError, &timeout);*/
+		int nSelect = poll(fdAll, fdCount, timeout_usec);
         if (interruptNet)
             return;
 
@@ -1247,21 +1268,24 @@ void CConnman::ThreadSocketHandler()
             {
                 int nErr = WSAGetLastError();
                 LogPrintf("socket select error %s\n", NetworkErrorString(nErr));
-                for (unsigned int i = 0; i <= hSocketMax; i++)
-                    FD_SET(i, &fdsetRecv);
+                //for (unsigned int i = 0; i <= hSocketMax; i++)
+                //    FD_SET(i, &fdsetRecv);
             }
-            FD_ZERO(&fdsetSend);
-            FD_ZERO(&fdsetError);
-            if (!interruptNet.sleep_for(std::chrono::milliseconds(timeout.tv_usec/1000)))
-                return;
-        }
+            //FD_ZERO(&fdsetSend);
+            //FD_ZERO(&fdsetError);
+            //if (!interruptNet.sleep_for(std::chrono::milliseconds(timeout.tv_usec/1000)))
+            //    return;
+			if (!interruptNet.sleep_for(std::chrono::milliseconds(timeout_usec/1000)))
+			    return;
+		}
 
         //
         // Accept new connections
         //
         BOOST_FOREACH(const ListenSocket& hListenSocket, vhListenSocket)
         {
-            if (hListenSocket.socket != INVALID_SOCKET && FD_ISSET(hListenSocket.socket, &fdsetRecv))
+            //if (hListenSocket.socket != INVALID_SOCKET && FD_ISSET(hListenSocket.socket, &fdsetRecv))
+			if(hListenSocket.socket != INVALID_SOCKET && (fdAll[fdMap[hListenSocket.socket]].revents & POLLIN))
             {
                 AcceptConnection(hListenSocket);
             }
@@ -1292,9 +1316,20 @@ void CConnman::ThreadSocketHandler()
                 LOCK(pnode->cs_hSocket);
                 if (pnode->hSocket == INVALID_SOCKET)
                     continue;
-                recvSet = FD_ISSET(pnode->hSocket, &fdsetRecv);
-                sendSet = FD_ISSET(pnode->hSocket, &fdsetSend);
-                errorSet = FD_ISSET(pnode->hSocket, &fdsetError);
+                //recvSet = FD_ISSET(pnode->hSocket, &fdsetRecv);
+                //sendSet = FD_ISSET(pnode->hSocket, &fdsetSend);
+                //errorSet = FD_ISSET(pnode->hSocket, &fdsetError);
+				if (nSelect == SOCKET_ERROR)
+				{
+					recvSet = true;
+				}
+				else
+				{
+					recvSet = fdAll[fdMap[pnode->hSocket]].revents & POLLIN;
+					sendSet = fdAll[fdMap[pnode->hSocket]].revents & POLLOUT;
+					errorSet = fdAll[fdMap[pnode->hSocket]].revents & POLLERR;
+                    //LogPrint("net", "socket: %d recvSet: %d sendSet: %d errorSet: %d\n", pnode->hSocket, recvSet, sendSet, errorSet);
+				}
             }
             if (recvSet || errorSet)
             {
@@ -1399,6 +1434,7 @@ void CConnman::ThreadSocketHandler()
                 }
             }
         }
+        free(fdAll);
         {
             LOCK(cs_vNodes);
             BOOST_FOREACH(CNode* pnode, vNodesCopy)

@@ -69,6 +69,19 @@ struct TransactionData{
 		max_same_transactions = max_transaction_depth;
 	}
 	TransactionData(){};
+	void prune() {
+		time_t now;
+		std::vector<std::string> victims;
+		time(&now);
+		for (typename std::map<std::string, std::vector<TransactionDataUnit<T>>>::iterator it = hashmap.begin(); it != hashmap.end(); ++it) {
+			if (difftime(now, it->second[0].transaction_time) > 5 * 60) {
+				victims.push_back(it->first);
+			}
+		}
+		for (std::vector<std::string>::iterator vit = victims.begin(); vit != victims.end(); ++vit) {
+			hashmap.erase(*vit);
+		}
+	}
 	bool add(std::string transaction_hash,std::string ipaddress_,time_t transaction_time_,T transaction_data_,bool assumed_source_){
 		if (hashmap.count(transaction_hash) == 1) {
 			int sz = (int) hashmap[transaction_hash].size();
