@@ -1664,31 +1664,36 @@ void CConnman::ProcessOneShot()
 void CConnman::ThreadOpenConnections()
 {
     // Connect to specific addresses
-    if (mapMultiArgs.count("-connect") && mapMultiArgs.at("-connect").size() > 0)
+	std::vector<std::string> nodesFromFile;
+	if (mapMultiArgs.count("-addfilenodes"))
+	//if (mapMultiArgs.count("-connect") && mapMultiArgs.at("-connect").size() > 0)
     {
-        for (int64_t nLoop = 0;; nLoop++)
-        {
+        nodesFromFile = ReadNodesFromFile();
+		//for (int64_t nLoop = 0;; nLoop++)
+        //{
             ProcessOneShot();
-            BOOST_FOREACH(const std::string& strAddr, mapMultiArgs.at("-connect"))
+            //BOOST_FOREACH(const std::string& strAddr, mapMultiArgs.at("-connect"))
+            BOOST_FOREACH(const std::string& strAddr, nodesFromFile)
             {
-		LogPrint("net", "ThreadOpenConnections top of FOREACH with IP: %s", strAddr.c_str());
+		        //LogPrint("net", "ThreadOpenConnections top of FOREACH with IP: %s", strAddr.c_str());
                 CAddress addr(CService(), NODE_NONE);
+                LogPrint("net", "CS6262: Attempting to open IP address from file: %s\n", strAddr.c_str());
                 OpenNetworkConnection(addr, false, NULL, strAddr.c_str());
-                for (int i = 0; i < 10 && i < nLoop; i++)
-                {
-	            LogPrint("net", "ThreadOpenConnections inner most FOR i: %d", i);
-                    if (!interruptNet.sleep_for(std::chrono::milliseconds(500)))
+                //for (int i = 0; i < 10 && i < nLoop; i++)
+                //{
+	            //LogPrint("net", "ThreadOpenConnections inner most FOR i: %d", i);
+                    if (!interruptNet.sleep_for(std::chrono::milliseconds(100)))
                         return;
-                }
+                //}
             }
-	    LogPrint("net", "ThreadOpenConnections about to sleep bottom of containing FOR nloop: %d", nLoop);
+	    //LogPrint("net", "ThreadOpenConnections about to sleep bottom of containing FOR nloop: %d", nLoop);
 
-            if (!interruptNet.sleep_for(std::chrono::milliseconds(500)))
-                return;
-        }
+        //    if (!interruptNet.sleep_for(std::chrono::milliseconds(500)))
+        //        return;
+        //}
     }
 
-    LogPrint("net", "ThreadOpenConnections survived explicit connect");
+    LogPrint("net", "CS6262: ThreadOpenConnections finished opening IP addresses from file\n");
 
     // Initiate network connections
     int64_t nStart = GetTime();
@@ -1905,11 +1910,8 @@ void CConnman::ThreadOpenAddedConnections()
         LOCK(cs_vAddedNodes);
         if (mapMultiArgs.count("-addnode"))
             vAddedNodes = mapMultiArgs.at("-addnode");
-        else if(mapMultiArgs.count("-addfilenodes"))
-            vAddedNodes = ReadNodesFromFile();
     }
 
-    LogPrint("net", "CS6262: vAddedNodes is size: %d\n", vAddedNodes.size());
     while (true)
     {
         CSemaphoreGrant grant(*semAddnode);
