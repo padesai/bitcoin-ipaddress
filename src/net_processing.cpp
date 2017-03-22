@@ -1550,7 +1550,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             bool fAlreadyHave = AlreadyHave(inv);
             LogPrint("net", "got inv: %s  %s peer=%d\n", inv.ToString(), fAlreadyHave ? "have" : "new", pfrom->id);
 
-                    std::ofstream livelog;
+                    /*std::ofstream livelog;
                     errno=0;
                     boost::filesystem::path pathDebug = GetDataDir() / "livelog.txt";
                     livelog.open(pathDebug.string().c_str(), std::ofstream::app);
@@ -1559,7 +1559,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     std::string ipaddress = pfrom->addr.ToStringIP();
                     std::time_t rcvTime = std::time(nullptr);
                     livelog << "Got: " << inv.type << "," << hash << "," << ipaddress << "," << rcvTime << "\n";
-                    livelog.close();
+                    livelog.close();*/
             if (inv.type == MSG_TX) {
                 inv.type |= nFetchFlags;
                 // ***** Start CS6262 changes
