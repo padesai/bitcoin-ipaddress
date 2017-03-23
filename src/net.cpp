@@ -1194,7 +1194,7 @@ void CConnman::ThreadSocketHandler()
         FD_ZERO(&fdsetError);*/
 		int timeout_usec = 50000;
         SOCKET hSocketMax = 0;
-		pollfd *fdAll = (pollfd*)malloc(sizeof(pollfd) * (vhListenSocket.size() + vNodes.size()));
+		pollfd *fdAll = (pollfd*)malloc(sizeof(pollfd) * vhListenSocket.size());
 		std::map<SOCKET, int> fdMap;
         bool have_fds = false;
 		int fdCount = 0;
@@ -1211,6 +1211,19 @@ void CConnman::ThreadSocketHandler()
 
         {
             LOCK(cs_vNodes);
+			if (fdCount == 0)
+			{
+				free(fdAll);
+				fdAll = (pollfd*)malloc(sizeof(pollfd) * vNodes.size());
+			}
+			else
+			{
+				LogPrint("net", "CS6262 - reallocating fdAll for size %d\n", fdCount + vNodes.size());
+				pollfd *temp = (pollfd*)malloc(sizeof(pollfd) * (fdCount + vNodes.size()));
+				memcpy(temp, fdAll, sizeof(pollfd)*fdCount);
+				free(fdAll);
+				fdAll = temp;
+			}
             BOOST_FOREACH(CNode* pnode, vNodes)
             {
                 // Implement the following logic:
