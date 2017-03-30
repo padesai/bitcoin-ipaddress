@@ -1218,7 +1218,7 @@ void CConnman::ThreadSocketHandler()
 			}
 			else
 			{
-				LogPrint("net", "CS6262 - reallocating fdAll for size %d\n", fdCount + vNodes.size());
+				//LogPrint("net", "CS6262 - reallocating fdAll for size %d\n", fdCount + vNodes.size());
 				pollfd *temp = (pollfd*)malloc(sizeof(pollfd) * (fdCount + vNodes.size()));
 				memcpy(temp, fdAll, sizeof(pollfd)*fdCount);
 				free(fdAll);
