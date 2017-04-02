@@ -365,7 +365,7 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char *pszDest, bool fCo
                   ConnectSocket(addrConnect, hSocket, nConnectTimeout, &proxyConnectionFailed))
     {
         if (!IsSelectableSocket(hSocket)) {
-            LogPrintf("Cannot create connection: non-selectable socket created (fd >= FD_SETSIZE ?)\n");
+            LogPrintf("Cannot create connection: non-selectable socket created (fd >= FD_SETSIZE ?) CS6262 - hSocket: %d FD_SETSIZE: %d\n", hSocket, FD_SETSIZE);
             CloseSocket(hSocket);
             return NULL;
         }
@@ -1062,7 +1062,7 @@ void CConnman::AcceptConnection(const ListenSocket& hListenSocket) {
 
     if (!IsSelectableSocket(hSocket))
     {
-        LogPrintf("connection from %s dropped: non-selectable socket\n", addr.ToString());
+        LogPrintf("connection from %s dropped: non-selectable socket CS6262 - hSocket: %d\n", addr.ToString(), hSocket);
         CloseSocket(hSocket);
         return;
     }
@@ -2109,7 +2109,7 @@ bool CConnman::BindListenPort(const CService &addrBind, std::string& strError, b
     if (!IsSelectableSocket(hListenSocket))
     {
         strError = "Error: Couldn't create a listenable socket for incoming connections";
-        LogPrintf("%s\n", strError);
+        LogPrintf("%s CS6262 - hListenSocket: %d\n", strError, hListenSocket);
         return false;
     }
 

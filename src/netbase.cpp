@@ -228,6 +228,7 @@ bool static InterruptibleRecv(char* data, size_t len, int timeout, SOCKET& hSock
             int nErr = WSAGetLastError();
             if (nErr == WSAEINPROGRESS || nErr == WSAEWOULDBLOCK || nErr == WSAEINVAL) {
                 if (!IsSelectableSocket(hSocket)) {
+                    LogPrint("net", "CS6262: InterruptibleRecv error then IsSelectableSocket false. hSocket: %d\n", hSocket);
                     return false;
                 }
 				/* CS6262 changes follow - FD_SET can only handle 1024 sockets. Replace with poll

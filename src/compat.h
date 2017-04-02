@@ -10,6 +10,7 @@
 #include "config/bitcoin-config.h"
 #endif
 
+
 #ifdef WIN32
 #ifdef _WIN32_WINNT
 #undef _WIN32_WINNT
@@ -24,11 +25,7 @@
 #ifdef FD_SETSIZE
 #undef FD_SETSIZE // prevent redefinition compiler warning
 #endif
-<<<<<<< HEAD
-#define FD_SETSIZE 1024 * 1024 * 1024 // max number of fds in fd_set
-=======
-#define FD_SETSIZE 134217728 // max number of fds in fd_set was 1024
->>>>>>> aace30a4116031e5cb33f4a854db5f5006ad5651
+#define FD_SETSIZE 65535 // max number of fds in fd_set
 
 #include <winsock2.h>     // Must be included before mswsock.h and windows.h
 
@@ -91,7 +88,9 @@ bool static inline IsSelectableSocket(SOCKET s) {
 #ifdef WIN32
     return true;
 #else
-    return (s < FD_SETSIZE);
+    //return (s < FD_SETSIZE);
+    // FD_SETSIZE is always 1024 under Linux - the redefinition above only applies to Win32
+    return (s < 64512);
 #endif
 }
 
