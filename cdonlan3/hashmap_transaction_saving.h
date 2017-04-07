@@ -10,6 +10,7 @@
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctime>
 #include <map>
 #include <fstream>
 #include <sstream>
@@ -61,11 +62,15 @@ struct TransactionDataUnit{
 template<typename T>
 struct TransactionData{
 	std::map<std::string,std::vector<TransactionDataUnit<T>>> hashmap;
+	time_t timer;
 	int max_same_transactions;
 	TransactionData(int max_transaction_depth){
 		max_same_transactions = max_transaction_depth;
+		timer = time(0);
 	}
-	TransactionData(){};
+	TransactionData(){
+		timer = time(0);
+	};
 	void prune() {
 		time_t now;
 		std::vector<std::string> victims;
