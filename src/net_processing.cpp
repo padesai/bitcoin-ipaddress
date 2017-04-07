@@ -1548,7 +1548,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 	    if (difftime(now,transWrap.tmap.timer) > 5*60){
 		    std::stringstream ss;
 		    ss << now;
-		    transWrap.save_to_txt("Transaction_Log_"+ss.str());
+		    //transWrap.save_to_txt("Transaction_Log_"+ss.str());
+		    transWrap.tmap.timer = time(0);
 		    transWrap.tmap.prune();
 	    }
 
