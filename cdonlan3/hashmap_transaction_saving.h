@@ -157,6 +157,7 @@ struct TransactionDataWrapper{
 		delete(&tmap);
 		TransactionData<T> new_transaction_data(max_depth);
 		tmap = new_transaction_data;
+		tmap.timer = time(0);
 
 	}
 	void save_to_txt(string filename){
@@ -164,12 +165,14 @@ struct TransactionDataWrapper{
 		boost::archive::text_oarchive oa(ofs);
 		oa << tmap;
 		ofs.close();
+		tmap.timer=time(0);
 	}
 	void load_from_txt(string filename){
 		std::ifstream ifs(filename);
 		boost::archive::text_iarchive ia(ifs);
 		ia >> tmap;
 		ifs.close();
+		tmap.timer=time(0);
 //		query = tmap.query;
 //		add = tmap.add;
 	}
@@ -179,6 +182,7 @@ struct TransactionDataWrapper{
 		oa << tmap;
 		ofs.close();
 		clear_data();
+		tmap.timer=time(0);
 	}
 };
 
@@ -192,5 +196,4 @@ struct TransactionDataWrapper{
 //		};
 //	}
 //}
-#endif
 #endif
