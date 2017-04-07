@@ -229,6 +229,7 @@ std::map<NodeId, CNodeState> mapNodeState;
 
 // ***** CS6262 change *****
 TransactionData<std::string> transData(10);
+TransactionDataWrapper<std::string>transWrap(transData);
 // ***** End change *****
 
 // Requires cs_main.
@@ -1540,7 +1541,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         std::vector<CInv> vToFetch;
 
-		transData.prune();
+		transWrap.transData.prune();
 
         for (unsigned int nInv = 0; nInv < vInv.size(); nInv++)
         {
@@ -1578,7 +1579,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 //livelog << "MSG_BLOCK" << hash << "," << ipaddress << "," << rcvTime << "\r";
                 //livelog.close();
 
-                if(transData.query(hash, &history)) {
+                if(transWrap.transData.query(hash, &history)) {
                     if(history.size() < 8) {
                         // If we've gotten this transaction 8 times the odds of the originator
                         // sending to us directly is just too low. No need to save more data or
@@ -1603,12 +1604,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                                 corLog.close();
 
                                 // Add to the transaction list
-                                transData.add(hash, ipaddress, rcvTime, transactiondata, true);
+                                transWrap.transData.add(hash, ipaddress, rcvTime, transactiondata, true);
                             }
                         }
                         else {
                             // We've previously saved this transaction. Add the additional IP address
-                            transData.add(hash, ipaddress, rcvTime, transactiondata, false);
+                            transWrap.transData.add(hash, ipaddress, rcvTime, transactiondata, false);
                         }
                     }
                 }
@@ -1629,7 +1630,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     }
 
                     // Save the transaction
-                    transData.add(hash, ipaddress, rcvTime, transactiondata, pfrom->fInbound);
+                    transWrap.transData.add(hash, ipaddress, rcvTime, transactiondata, pfrom->fInbound);
                 }
                 // ***** End CS6262 changes
             }

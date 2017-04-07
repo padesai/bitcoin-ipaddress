@@ -15,8 +15,8 @@
 #include <sstream>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/map.hpp>
-//#include <boost/filesystem/fstream.hpp>
-//#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 
@@ -25,7 +25,6 @@
 using namespace std;
 template<typename T>
 struct TransactionDataUnit{
-	int position;
 	bool assumed_source;
 	size_t time_added;
 	time_t transaction_time;
@@ -40,13 +39,11 @@ struct TransactionDataUnit{
 		transaction_string = transaction_string_;
 		transaction_time = transaction_time_;
 		ipaddress = ipaddress_;
-		position = 0;
 		time_added = (size_t) time(NULL);
-		assumed_source_ = assumed_source_;
+		assumed_source = assumed_source_;
 	};
 	template<class Archive>
 	void serialize(Archive & ar, const unsigned int version){
-		ar & position;
 		ar & time_added;
 		ar & transaction_time;
 		ar & transaction_string;
@@ -73,7 +70,7 @@ struct TransactionData{
 		time_t now;
 		std::vector<std::string> victims;
 		time(&now);
-		for (typename std::map<std::string, std::vector<TransactionDataUnit<T>>>::iterator it = hashmap.begin(); it != hashmap.end(); ++it) {
+		for (typename std::map<std::string,std::vector<TransactionDataUnit<T>>>::iterator it = hashmap.begin(); it != hashmap.end(); ++it) {
 			if (difftime(now, it->second[0].transaction_time) > 5 * 60) {
 				victims.push_back(it->first);
 			}
@@ -83,31 +80,52 @@ struct TransactionData{
 		}
 	}
 	bool add(std::string transaction_hash,std::string ipaddress_,time_t transaction_time_,T transaction_data_,bool assumed_source_){
-		if (hashmap.count(transaction_hash) == 1) {
-			int sz = (int) hashmap[transaction_hash].size();
-			if (sz < max_same_transactions) {
-				TransactionDataUnit<T> dat(transaction_data_, transaction_hash, ipaddress_, transaction_time_,assumed_source_);
-				dat.position = sz;
-				hashmap[transaction_hash].push_back(dat);
-				return true;
-			} else {
-				return false;
-			}
-		} else {
-			TransactionDataUnit<T> dat(transaction_data_,transaction_hash,ipaddress_,transaction_time_,assumed_source_);
-			dat.position = 0;
-			std::vector<TransactionDataUnit<T>> transaction_vector {dat};
-			hashmap[transaction_hash] =  transaction_vector;
+		if (hashmap[transaction_hash].size() < max_same_transactions) {
+			TransactionDataUnit<T> dat(transaction_data_, transaction_hash, ipaddress_, transaction_time_,assumed_source_);
+			hashmap[transaction_hash].push_back(dat);
 			return true;
+		} else {
+			// Added this so that the source is always added in at position 0.
+			// ToDo: this could become a subtle bug. So watch out.
+			if (assumed_source_){
+				TransactionDataUnit<T> dat(transaction_data_, transaction_hash, ipaddress_, transaction_time_,assumed_source_);
+				hashmap[transaction_hash][0] = dat;
+				return true;
+			}
+			return false;
+		}
+	}
+	bool add(TransactionDataUnit<T> tdu){
+		if (hashmap[tdu.transaction_string].size() < max_same_transactions){
+			hashmap[tdu.transaction_string].push_back(tdu);
+			return true;
+		} else {
+			if (tdu.assumed_source) {
+				hashmap[tdu.transaction_string][0] = tdu;
+				return true;
+			}
+			return false;
 		}
 	}
 	bool query(std::string transaction_hash,std::vector<TransactionDataUnit<T>> * transaction_vector){
-		if (hashmap.count(transaction_hash) == 1){
-			*transaction_vector = hashmap[transaction_hash];
+		if (hashmap[transaction_hash].size() > 0){
+			for (typename vector<TransactionDataUnit<T>>::iterator it = hashmap[transaction_hash].begin();
+			     it != hashmap[transaction_hash].end(); it++){
+				(*transaction_vector).push_back(*it);
+			}
 			return true;
-		} else {
-			return false;
 		}
+		return false;
+	}
+	bool query(TransactionDataUnit<T> tdu, vector<TransactionDataUnit<T>>*tvector){
+		if (hashmap[tdu.transaction_string].size() > 0){
+			for (typename vector<TransactionDataUnit<T>>::iterator it = hashmap[tdu.transaction_string].begin();
+			     it != hashmap[tdu.transaction_string].end(); ++it){
+				(*tvector).push_back(*it);
+			}
+			return true;
+		}
+		return false;
 	}
 	template<class Archive>
 	void serialize(Archive & ar, const unsigned int version){
@@ -117,43 +135,43 @@ struct TransactionData{
 };
 template<typename T>
 struct TransactionDataWrapper{
-	TransactionData<T> transaction_data;
+	TransactionData<T> tmap;
 
-	// Did not figure out how to get these members to point to the functions in `transaction_data`
-	//bool (*add)(std::string transaction_hash,std::string ipaddress,time_t transaction_time,T transaction_data);
+	// Did not figure out how to get these members to point to the functions in `tmap`
+	//bool (*add)(std::string transaction_hash,std::string ipaddress,time_t transaction_time,T tmap);
 	//bool (*query)(std::string transaction_hash,std::vector<TransactionDataUnit<T>>* transaction_vector);
 
 	TransactionDataWrapper(){};
 	TransactionDataWrapper(TransactionData<T> transaction_data_){
-		transaction_data = transaction_data_;
+		tmap = transaction_data_;
 //		add = (transaction_data_.add);
 //		query = (transaction_data_.query);
 	}
 	void clear_data(){
-		int max_depth = transaction_data.max_same_transactions;
-		delete(&transaction_data);
+		int max_depth = tmap.max_same_transactions;
+		delete(&tmap);
 		TransactionData<T> new_transaction_data(max_depth);
-		transaction_data = new_transaction_data;
+		tmap = new_transaction_data;
 
 	}
 	void save_to_txt(string filename){
 		std::ofstream ofs(filename);
 		boost::archive::text_oarchive oa(ofs);
-		oa << transaction_data;
+		oa << tmap;
 		ofs.close();
 	}
 	void load_from_txt(string filename){
 		std::ifstream ifs(filename);
 		boost::archive::text_iarchive ia(ifs);
-		ia >> transaction_data;
+		ia >> tmap;
 		ifs.close();
-//		query = transaction_data.query;
-//		add = transaction_data.add;
+//		query = tmap.query;
+//		add = tmap.add;
 	}
 	void log(string filename){
 		std::ofstream ofs(filename);
 		boost::archive::text_oarchive oa(ofs);
-		oa << transaction_data;
+		oa << tmap;
 		ofs.close();
 		clear_data();
 	}
@@ -169,4 +187,5 @@ struct TransactionDataWrapper{
 //		};
 //	}
 //}
+#endif
 #endif
