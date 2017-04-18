@@ -1,3 +1,36 @@
+Team 9 Edits
+============
+
+enabling >>8 connections
+-------------------------
+
+
+net_processing.cpp
+------------------
+
+
+Transaction Hashmap
+-------------------
+
+cdonlan3/hashmap_transaction_saving.h (no coding done in .cpp--just used the header file)
+
+classes:
+--------
+
+TransactionDataUnit: generic storage struct with serialization protocol (for boost serialization)
+that is capable of storing individual transactions. 
+
+TransactionData: hashmap of transaction data units; stores a stack (specified by an upper limit) of
+transactions; also includes serialization protocol
+
+TransactionDataWrapper: provides an API for single API-call storage and serialization. 
+
+
+
+
+
+
+
 Bitcoin Core integration/staging tree
 =====================================
 
