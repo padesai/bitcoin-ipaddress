@@ -1,10 +1,6 @@
 Team 9 Edits
 ============
 
-enabling >>8 connections
--------------------------
-
-
 net_processing.cpp
 ------------------
 
