@@ -1,9 +1,29 @@
 Team 9 Edits
 ============
-
+ 
 net_processing.cpp
 ------------------
+The logic to handle capturing transaction hashes and associating them with an IP address happens here. Nearly all changes are in the section devoted to processing "INV" messages from a peer starting around line 1579. While we added logic to attempt to associate IP addresses to hashes that weren't seen first on an inbound connection, we only used "exact" matches for our final analysis.
 
+net.cpp
+-------
+Made significant re-writes to this code start around line 1182. The FD_SET/select API only scales to 1024 connections so that logic was replaced with the poll API. Also added code starting around 1667 to allow the client to read IP addresses from a file and attempt to connect to them first.
+
+netbase.cpp
+-----------
+Changes starting near line 233 dealing with the same FD_SET/select API limitations as described above
+
+net.h
+-----
+Changed constants than control maximum number of connected peers
+
+util.h
+------
+Added debug output to validate that the node is starting with a high enough file descriptor limit to allow for enough sockets.
+
+compat.h
+--------
+Disabled a check that the socket file descriptor was less than FD_SETSIZE (not applicable once FD_SET API was no longer used)
 
 Transaction Hashmap
 -------------------
@@ -22,7 +42,9 @@ transactions; also includes serialization protocol
 TransactionDataWrapper: provides an API for single API-call storage and serialization. 
 
 
-
+Compile
+-------
+Follow the instructions in the build-unix.md file in the docs folder to set up a development environment under Linux. Note that several packages must be installed before attempting to compile. We recommend disabling as many optional modules in the configuration as possible such as the example listed for Arch Linux: ./configure --disable-wallet --without-gui --without-miniupnpc
 
 
 
